@@ -145,7 +145,7 @@ extern struct crt_proto_format cont_proto_fmt;
 				/* latest map version or zero */ \
 	((uint32_t)		(co_map_version)	CRT_VAR) \
 				/* leadership info */		 \
-	((struct rsvc_hint)	(co_hint)		CRT_VAR)
+	((struct rsvc_hint)	(co_hint)		CRT_RAW)
 
 CRT_RPC_DECLARE(cont_op, DAOS_ISEQ_CONT_OP, DAOS_OSEQ_CONT_OP)
 

@@ -29,55 +29,25 @@
 #include "rpc.h"
 
 static int
-crt_proc_struct_rsvc_hint(crt_proc_t proc, struct rsvc_hint *hint)
+crt_proc_daos_epoch_range_t(crt_proc_t proc, daos_epoch_range_t *p)
 {
 	int rc;
 
-	rc = crt_proc_uint32_t(proc, &hint->sh_flags);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &hint->sh_rank);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &hint->sh_term);
-	if (rc != 0)
-		return -DER_HG;
-
-	return 0;
-}
-
-static int
-crt_proc_daos_epoch_range_t(crt_proc_t proc, daos_epoch_range_t *erange)
-{
-	int rc;
-
-	rc = crt_proc_uint64_t(proc, &erange->epr_lo);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &erange->epr_hi);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
 crt_proc_struct_cont_tgt_close_rec(crt_proc_t proc,
-				   struct cont_tgt_close_rec *rec)
+				   struct cont_tgt_close_rec *p)
 {
 	int rc;
 
-	rc = crt_proc_uuid_t(proc, &rec->tcr_hdl);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &rec->tcr_hce);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 

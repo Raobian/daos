@@ -32,38 +32,13 @@
 #include "rpc.h"
 
 static int
-crt_proc_daos_obj_id_t(crt_proc_t proc, daos_obj_id_t *p)
-{
-	int rc;
-
-	rc = crt_proc_uint64_t(proc, &p->lo);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &p->hi);
-	if (rc != 0)
-		return -DER_HG;
-
-	return 0;
-}
-
-static int
 crt_proc_daos_unit_oid_t(crt_proc_t proc, daos_unit_oid_t *p)
 {
 	int rc;
 
-	rc = crt_proc_daos_obj_id_t(proc, &p->id_pub);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &p->id_shard);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &p->id_pad_32);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 

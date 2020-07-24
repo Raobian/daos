@@ -33,116 +33,67 @@
 #include "rpc_csum.h"
 
 static int
-crt_proc_struct_dtx_id(crt_proc_t proc, struct dtx_id *dti)
+crt_proc_struct_dtx_id(crt_proc_t proc, struct dtx_id *p)
 {
 	int rc;
 
-	rc = crt_proc_uuid_t(proc, &dti->dti_uuid);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &dti->dti_hlc);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
-crt_proc_daos_key_desc_t(crt_proc_t proc, daos_key_desc_t *key)
+crt_proc_daos_key_desc_t(crt_proc_t proc, daos_key_desc_t *p)
 {
 	int rc;
 
-	rc = crt_proc_uint64_t(proc, &key->kd_key_len);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &key->kd_val_type);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
-crt_proc_daos_obj_id_t(crt_proc_t proc, daos_obj_id_t *doi)
+crt_proc_daos_unit_oid_t(crt_proc_t proc, daos_unit_oid_t *p)
 {
 	int rc;
 
-	rc = crt_proc_uint64_t(proc, &doi->lo);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &doi->hi);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
-crt_proc_daos_unit_oid_t(crt_proc_t proc, daos_unit_oid_t *doi)
+crt_proc_daos_recx_t(crt_proc_t proc, daos_recx_t *p)
 {
 	int rc;
 
-	rc = crt_proc_daos_obj_id_t(proc, &doi->id_pub);
-	if (rc != 0)
-		return rc;
-
-	rc = crt_proc_uint32_t(proc, &doi->id_shard);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &doi->id_pad_32);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
-crt_proc_daos_recx_t(crt_proc_t proc, daos_recx_t *recx)
+crt_proc_daos_epoch_range_t(crt_proc_t proc, daos_epoch_range_t *p)
 {
 	int rc;
 
-	rc = crt_proc_uint64_t(proc, &recx->rx_idx);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &recx->rx_nr);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
-crt_proc_daos_epoch_range_t(crt_proc_t proc, daos_epoch_range_t *erange)
+crt_proc_struct_obj_shard_iod(crt_proc_t proc, struct obj_shard_iod *p)
 {
 	int rc;
 
-	rc = crt_proc_uint64_t(proc, &erange->epr_lo);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &erange->epr_hi);
-	if (rc != 0)
-		return -DER_HG;
-
-	return 0;
-}
-
-
-static int
-crt_proc_struct_obj_shard_iod(crt_proc_t proc, struct obj_shard_iod *siod)
-{
-	if (crt_proc_uint32_t(proc, &siod->siod_tgt_idx) != 0)
-		return -DER_HG;
-	if (crt_proc_uint32_t(proc, &siod->siod_idx) != 0)
-		return -DER_HG;
-	if (crt_proc_uint32_t(proc, &siod->siod_nr) != 0)
-		return -DER_HG;
-	if (crt_proc_uint64_t(proc, &siod->siod_off) != 0)
 		return -DER_HG;
 	return 0;
 }
@@ -206,9 +157,6 @@ crt_proc_daos_iod_and_csum(crt_proc_t proc, crt_proc_op_t proc_op,
 	}
 
 	rc = crt_proc_d_iov_t(proc, &iod->iod_name);
-	if (rc != 0)
-		return rc;
-
 	if (rc != 0)
 		return rc;
 
@@ -564,35 +512,17 @@ crt_proc_struct_obj_iod_array(crt_proc_t proc, struct obj_iod_array *iod_array)
 }
 
 static int
-crt_proc_daos_anchor_t(crt_proc_t proc, daos_anchor_t *anchor)
-{
-	if (crt_proc_uint16_t(proc, &anchor->da_type) != 0)
-		return -DER_HG;
-
-	if (crt_proc_uint16_t(proc, &anchor->da_shard) != 0)
-		return -DER_HG;
-
-	if (crt_proc_uint32_t(proc, &anchor->da_flags) != 0)
-		return -DER_HG;
-
-	if (crt_proc_raw(proc, anchor->da_buf, sizeof(anchor->da_buf)) != 0)
-		return -DER_HG;
-
-	return 0;
-}
-
-static int
-crt_proc_d_sg_list_t(crt_proc_t proc, d_sg_list_t *sgl)
+crt_proc_d_sg_list_t(crt_proc_t proc, d_sg_list_t *p)
 {
 	crt_proc_op_t	proc_op;
 	int		i;
 	int		rc;
 
-	rc = crt_proc_uint32_t(proc, &sgl->sg_nr);
+	rc = crt_proc_uint32_t(proc, &p->sg_nr);
 	if (rc != 0)
 		return -DER_HG;
 
-	rc = crt_proc_uint32_t(proc, &sgl->sg_nr_out);
+	rc = crt_proc_uint32_t(proc, &p->sg_nr_out);
 	if (rc != 0)
 		return -DER_HG;
 
@@ -600,47 +530,36 @@ crt_proc_d_sg_list_t(crt_proc_t proc, d_sg_list_t *sgl)
 	if (rc != 0)
 		return -DER_HG;
 
-	if (proc_op == CRT_PROC_DECODE && sgl->sg_nr > 0) {
-		D_ALLOC_ARRAY(sgl->sg_iovs, sgl->sg_nr);
-		if (sgl->sg_iovs == NULL)
+	if (proc_op == CRT_PROC_DECODE && p->sg_nr > 0) {
+		D_ALLOC_ARRAY(p->sg_iovs, p->sg_nr);
+		if (p->sg_iovs == NULL)
 			return -DER_NOMEM;
 	}
 
-	for (i = 0; i < sgl->sg_nr; i++) {
-		rc = crt_proc_d_iov_t(proc, &sgl->sg_iovs[i]);
+	for (i = 0; i < p->sg_nr; i++) {
+		rc = crt_proc_d_iov_t(proc, &p->sg_iovs[i]);
 		if (rc != 0) {
 			if (proc_op == CRT_PROC_DECODE)
-				D_FREE(sgl->sg_iovs);
+				D_FREE(p->sg_iovs);
 			return -DER_HG;
 		}
 	}
 
-	if (proc_op == CRT_PROC_FREE && sgl->sg_iovs != NULL)
-		D_FREE(sgl->sg_iovs);
+	if (proc_op == CRT_PROC_FREE && p->sg_iovs != NULL)
+		D_FREE(p->sg_iovs);
 
 	return rc;
 }
 
 
 static int
-crt_proc_struct_daos_shard_tgt(crt_proc_t proc, struct daos_shard_tgt *st)
+crt_proc_struct_daos_shard_tgt(crt_proc_t proc, struct daos_shard_tgt *p)
 {
 	int rc;
 
-	rc = crt_proc_uint32_t(proc, &st->st_rank);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-	rc = crt_proc_uint32_t(proc, &st->st_shard);
-	if (rc != 0)
-		return -DER_HG;
-	rc = crt_proc_uint32_t(proc, &st->st_tgt_id);
-	if (rc != 0)
-		return -DER_HG;
-	rc = crt_proc_uint16_t(proc, &st->st_tgt_idx);
-	if (rc != 0)
-		return -DER_HG;
-	/* st_ec_tgt need not pack */
-
 	return 0;
 }
 
@@ -650,7 +569,6 @@ CRT_RPC_DEFINE(obj_punch, DAOS_ISEQ_OBJ_PUNCH, DAOS_OSEQ_OBJ_PUNCH)
 CRT_RPC_DEFINE(obj_query_key, DAOS_ISEQ_OBJ_QUERY_KEY, DAOS_OSEQ_OBJ_QUERY_KEY)
 CRT_RPC_DEFINE(obj_sync, DAOS_ISEQ_OBJ_SYNC, DAOS_OSEQ_OBJ_SYNC)
 CRT_RPC_DEFINE(obj_migrate, DAOS_ISEQ_OBJ_MIGRATE, DAOS_OSEQ_OBJ_MIGRATE)
-
 
 /* Define for cont_rpcs[] array population below.
  * See OBJ_PROTO_*_RPC_LIST macro definition

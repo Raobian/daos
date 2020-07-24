@@ -158,7 +158,7 @@ extern struct crt_proto_format pool_proto_fmt;
 #define DAOS_OSEQ_POOL_OP	/* output fields */		 \
 	((int32_t)		(po_rc)			CRT_VAR) \
 	((uint32_t)		(po_map_version)	CRT_VAR) \
-	((struct rsvc_hint)	(po_hint)		CRT_VAR)
+	((struct rsvc_hint)	(po_hint)		CRT_RAW)
 
 CRT_RPC_DECLARE(pool_op, DAOS_ISEQ_POOL_OP, DAOS_OSEQ_POOL_OP)
 
@@ -185,8 +185,8 @@ CRT_RPC_DECLARE(pool_create, DAOS_ISEQ_POOL_CREATE, DAOS_OSEQ_POOL_CREATE)
 
 #define DAOS_OSEQ_POOL_CONNECT	/* output fields */		 \
 	((struct pool_op_out)	(pco_op)		CRT_VAR) \
-	((struct daos_pool_space) (pco_space)		CRT_VAR) \
-	((struct daos_rebuild_status) (pco_rebuild_st)	CRT_VAR) \
+	((struct daos_pool_space) (pco_space)		CRT_RAW) \
+	((struct daos_rebuild_status) (pco_rebuild_st)	CRT_RAW) \
 	/* only set on -DER_TRUNC */				 \
 	((uint32_t)		(pco_map_buf_size)	CRT_VAR)
 
@@ -210,7 +210,7 @@ CRT_RPC_DECLARE(pool_disconnect, DAOS_ISEQ_POOL_DISCONNECT,
 	((struct pool_op_out)	(pqo_op)		CRT_VAR) \
 	((daos_prop_t)		(pqo_prop)		CRT_PTR) \
 	((struct daos_pool_space) (pqo_space)		CRT_VAR) \
-	((struct daos_rebuild_status) (pqo_rebuild_st)	CRT_VAR) \
+	((struct daos_rebuild_status) (pqo_rebuild_st)	CRT_RAW) \
 	/* only set on -DER_TRUNC */				 \
 	((uint32_t)		(pqo_map_buf_size)	CRT_VAR)
 
@@ -247,7 +247,7 @@ CRT_RPC_DECLARE(pool_attr_set, DAOS_ISEQ_POOL_ATTR_SET, DAOS_OSEQ_POOL_OP)
 	((d_rank_list_t)	(pmi_targets)		CRT_PTR)
 
 #define DAOS_OSEQ_POOL_MEMBERSHIP /* output fields */		 \
-	((struct rsvc_hint)	(pmo_hint)		CRT_VAR) \
+	((struct rsvc_hint)	(pmo_hint)		CRT_RAW) \
 	((d_rank_list_t)	(pmo_failed)		CRT_PTR) \
 	((int32_t)		(pmo_rc)		CRT_VAR)
 

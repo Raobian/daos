@@ -31,123 +31,49 @@
 #include "rpc.h"
 
 static int
-crt_proc_struct_pool_target_addr(crt_proc_t proc, struct pool_target_addr *tgt)
+crt_proc_struct_pool_target_addr(crt_proc_t proc, struct pool_target_addr *p)
 {
 	int rc;
 
-	rc = crt_proc_uint32_t(proc, &tgt->pta_rank);
+	rc = crt_proc_memcpy(proc, p, sizeof(*p));
 	if (rc != 0)
 		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &tgt->pta_target);
-	if (rc != 0)
-		return -DER_HG;
-
 	return 0;
 }
 
 static int
-crt_proc_struct_rsvc_hint(crt_proc_t proc, struct rsvc_hint *hint)
-{
-	int rc;
-
-	rc = crt_proc_uint32_t(proc, &hint->sh_flags);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &hint->sh_rank);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &hint->sh_term);
-	if (rc != 0)
-		return -DER_HG;
-
-	return 0;
-}
-
-static int
-crt_proc_struct_daos_pool_space(crt_proc_t proc, struct daos_pool_space *ps)
+crt_proc_struct_daos_pool_space(crt_proc_t proc, struct daos_pool_space *p)
 {
 	int i, rc;
 
 	for (i = 0; i < DAOS_MEDIA_MAX; i++) {
-		rc = crt_proc_uint64_t(proc, &ps->ps_space.s_total[i]);
+		rc = crt_proc_uint64_t(proc, &p->ps_space.s_total[i]);
 		if (rc)
 			return -DER_HG;
 
-		rc = crt_proc_uint64_t(proc, &ps->ps_space.s_free[i]);
+		rc = crt_proc_uint64_t(proc, &p->ps_space.s_free[i]);
 		if (rc)
 			return -DER_HG;
 
-		rc = crt_proc_uint64_t(proc, &ps->ps_free_min[i]);
+		rc = crt_proc_uint64_t(proc, &p->ps_free_min[i]);
 		if (rc)
 			return -DER_HG;
 
-		rc = crt_proc_uint64_t(proc, &ps->ps_free_max[i]);
+		rc = crt_proc_uint64_t(proc, &p->ps_free_max[i]);
 		if (rc)
 			return -DER_HG;
 
-		rc = crt_proc_uint64_t(proc, &ps->ps_free_mean[i]);
+		rc = crt_proc_uint64_t(proc, &p->ps_free_mean[i]);
 		if (rc)
 			return -DER_HG;
 	}
 
-	rc = crt_proc_uint32_t(proc, &ps->ps_ntargets);
+	rc = crt_proc_uint32_t(proc, &p->ps_ntargets);
 	if (rc)
 		return -DER_HG;
 
-	rc = crt_proc_uint32_t(proc, &ps->ps_padding);
+	rc = crt_proc_uint32_t(proc, &p->ps_padding);
 	if (rc)
-		return -DER_HG;
-
-	return 0;
-}
-
-static int
-crt_proc_struct_daos_rebuild_status(crt_proc_t proc,
-				    struct daos_rebuild_status *drs)
-{
-	int rc;
-
-	rc = crt_proc_uint32_t(proc, &drs->rs_version);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint32_t(proc, &drs->rs_seconds);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_int32_t(proc, &drs->rs_errno);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_int32_t(proc, &drs->rs_done);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_int32_t(proc, &drs->rs_padding32);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_int32_t(proc, &drs->rs_fail_rank);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &drs->rs_toberb_obj_nr);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &drs->rs_obj_nr);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &drs->rs_rec_nr);
-	if (rc != 0)
-		return -DER_HG;
-
-	rc = crt_proc_uint64_t(proc, &drs->rs_size);
-	if (rc != 0)
 		return -DER_HG;
 
 	return 0;
