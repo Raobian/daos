@@ -936,6 +936,9 @@ update_ts_on_fetch(struct vos_io_context *ioc, int err)
 	if (ts_set == NULL)
 		return;
 
+	if (DAOS_FAIL_CHECK(DAOS_DTX_NO_READ_TS))
+		return;
+
 	/** Aborted for another reason, no timestamp updates */
 	if (err != 0 && err != -DER_NONEXIST)
 		return;

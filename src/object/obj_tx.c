@@ -316,8 +316,13 @@ dc_tx_alloc(daos_handle_t coh, daos_epoch_t epoch, uint64_t flags,
 	 */
 	tx->tx_epoch.oe_value = epoch;
 	if (tx->tx_epoch.oe_value == 0) {
-		tx->tx_epoch.oe_value = daos_dti2epoch(&tx->tx_id);
-		tx->tx_epoch.oe_uncertain = true;
+		if (DAOS_FAIL_CHECK(DAOS_DTX_SPEC_EPOCH)) {
+			tx->tx_epoch.oe_value = daos_fail_value_get();
+			tx->tx_epoch.oe_uncertain = false;
+		} else {
+			tx->tx_epoch.oe_value = daos_dti2epoch(&tx->tx_id);
+			tx->tx_epoch.oe_uncertain = true;
+		}
 	}
 
 	tx->tx_coh = coh;
@@ -613,7 +618,10 @@ dc_tx_hdl2epoch_and_pmv(daos_handle_t th, struct dc_obj_epoch *epoch,
 		if (tx->tx_pm_ver == 0)
 			tx->tx_pm_ver = dc_pool_get_version(tx->tx_pool);
 
-		*pm_ver = tx->tx_pm_ver;
+		if (DAOS_FAIL_CHECK(DAOS_DTX_RESTART))
+			*pm_ver = tx->tx_pm_ver - 1;
+		else
+			*pm_ver = tx->tx_pm_ver;
 		*epoch = tx->tx_epoch;
 		D_MUTEX_UNLOCK(&tx->tx_lock);
 		dc_tx_decref(tx);

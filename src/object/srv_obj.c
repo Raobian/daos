@@ -1462,7 +1462,8 @@ do_obj_ioc_begin(uint32_t rpc_map_ver, uuid_t pool_uuid,
 		if (opc == DAOS_OBJ_RPC_CPD)
 			D_GOTO(out, rc = -DER_TX_RESTART);
 
-		if (obj_is_modification_opc(opc))
+		if (obj_is_modification_opc(opc) ||
+		    DAOS_FAIL_CHECK(DAOS_DTX_RESTART))
 			D_GOTO(out, rc = -DER_STALE);
 		/* It is harmless if fetch with old pool map version. */
 	}
@@ -2751,8 +2752,14 @@ ds_obj_cpd_set_sub_result(struct obj_cpd_out *oco, int idx,
 static void
 obj_cpd_reply(crt_rpc_t *rpc, int status, uint32_t map_version)
 {
+	struct obj_cpd_in	*oci = crt_req_get(rpc);
 	struct obj_cpd_out	*oco = crt_reply_get(rpc);
 	int			 rc;
+
+	if (!(oci->oci_flags & ORF_RESEND) &&
+	    (DAOS_FAIL_CHECK(DAOS_DTX_LOST_RPC_REQUEST) ||
+	     DAOS_FAIL_CHECK(DAOS_DTX_LOST_RPC_REPLY)))
+		goto cleanup;
 
 	obj_reply_set_status(rpc, status);
 	obj_reply_map_version_set(rpc, map_version);
@@ -2764,6 +2771,7 @@ obj_cpd_reply(crt_rpc_t *rpc, int status, uint32_t map_version)
 	if (rc != 0)
 		D_ERROR("Send CPD reply failed: "DF_RC"\n", DP_RC(rc));
 
+cleanup:
 	if (oco->oco_sub_rets.ca_count != 0) {
 		D_FREE(oco->oco_sub_rets.ca_arrays);
 		oco->oco_sub_rets.ca_count = 0;
@@ -2798,6 +2806,10 @@ ds_obj_dtx_handle_one(crt_rpc_t *rpc, struct daos_cpd_sub_head *dcsh,
 	int				  rc = 0;
 	int				  i;
 	int				  j;
+
+	if (dth->dth_flags & DTE_LEADER &&
+	    DAOS_FAIL_CHECK(DAOS_DTX_RESTART))
+		D_GOTO(out, rc = -DER_TX_RESTART);
 
 	dcri = dcde->dcde_reqs;
 	/* P1: Spread read TS. */
@@ -3303,6 +3315,8 @@ ds_obj_dtx_leader_ult(void *arg)
 				D_GOTO(out, rc);
 			break;
 		}
+	} else if (DAOS_FAIL_CHECK(DAOS_DTX_LOST_RPC_REQUEST)) {
+		D_GOTO(out, rc = 0);
 	}
 
 	dcde = ds_obj_cpd_get_dcde(dca->dca_rpc, dca->dca_idx, 0);
