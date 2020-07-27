@@ -154,7 +154,3 @@ func TestBdevBackendGetController(t *testing.T) {
 		})
 	}
 }
-
-func TestBdevBackend_UpdateFirmware(t *testing.T) {
-
-}

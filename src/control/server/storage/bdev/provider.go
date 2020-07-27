@@ -93,6 +93,7 @@ type (
 		Prepare(PrepareRequest) error
 		Scan() (storage.NvmeControllers, error)
 		Format(pciAddr string) (*storage.NvmeController, error)
+		UpdateFirmware(pciAddr string, path string, slot int32) error
 	}
 
 	// Provider encapsulates configuration and logic for interacting with a Block
