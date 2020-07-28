@@ -61,7 +61,8 @@ type (
 	jsonOutputter interface {
 		enableJsonOutput(bool)
 		jsonOutputEnabled() bool
-		outputJSON(io.Writer, interface{}) error
+		outputJSON(io.Writer, interface{}, error) error
+		errorJSON(error) error
 	}
 
 	jsonOutputCmd struct {
@@ -85,14 +86,29 @@ func (cmd *jsonOutputCmd) jsonOutputEnabled() bool {
 	return cmd.shouldEmitJSON
 }
 
-func (cmd *jsonOutputCmd) outputJSON(out io.Writer, in interface{}) error {
-	data, err := json.MarshalIndent(in, "", "  ")
+func (cmd *jsonOutputCmd) outputJSON(out io.Writer, in interface{}, cmdErr error) error {
+	var errStr *string
+	if cmdErr != nil {
+		errStr = new(string)
+		*errStr = cmdErr.Error()
+	}
+	data, err := json.MarshalIndent(struct {
+		Response interface{} `json:"response"`
+		Error    *string     `json:"error"`
+	}{in, errStr}, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	_, err = out.Write(append(data, []byte("\n")...))
-	return err
+	if _, err = out.Write(append(data, []byte("\n")...)); err != nil {
+		return err
+	}
+
+	return cmdErr
+}
+
+func (cmd *jsonOutputCmd) errorJSON(err error) error {
+	return cmd.outputJSON(os.Stdout, nil, err)
 }
 
 type cmdLogger interface {
@@ -193,6 +209,10 @@ func parseOpts(args []string, opts *cliOptions, invoker control.Invoker, log *lo
 
 		if jsonCmd, ok := cmd.(jsonOutputter); ok {
 			jsonCmd.enableJsonOutput(opts.JSON)
+			if opts.JSON {
+				// disable output on stdout other than JSON
+				log.SetLevel(logging.LogLevelError)
+			}
 		}
 
 		if logCmd, ok := cmd.(cmdLogger); ok {

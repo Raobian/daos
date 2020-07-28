@@ -40,6 +40,7 @@ type ContCmd struct {
 type ContSetOwnerCmd struct {
 	logCmd
 	ctlInvokerCmd
+	jsonOutputCmd
 	GroupName string `short:"g" long:"group" description:"New owner-group for the container, format name@domain"`
 	UserName  string `short:"u" long:"user" description:"New owner-user for the container, format name@domain"`
 	ContUUID  string `short:"c" long:"cont" required:"1" description:"UUID of the DAOS container"`
@@ -60,6 +61,10 @@ func (c *ContSetOwnerCmd) Execute(args []string) error {
 	err := control.ContSetOwner(ctx, c.ctlInvoker, req)
 	if err != nil {
 		msg = errors.WithMessage(err, "FAILED").Error()
+	}
+
+	if c.jsonOutputEnabled() {
+		return c.errorJSON(err)
 	}
 
 	c.log.Infof("Container-set-owner command %s\n", msg)

@@ -63,6 +63,9 @@ type storagePrepareCmd struct {
 func (cmd *storagePrepareCmd) Execute(args []string) error {
 	prepNvme, prepScm, err := cmd.Validate()
 	if err != nil {
+		if cmd.jsonOutputEnabled() {
+			return cmd.errorJSON(err)
+		}
 		return err
 	}
 
@@ -78,6 +81,9 @@ func (cmd *storagePrepareCmd) Execute(args []string) error {
 	}
 
 	if prepScm {
+		if cmd.jsonOutputEnabled() && !cmd.Force {
+			return cmd.errorJSON(errors.New("Cannot use --json without --force"))
+		}
 		if err := cmd.Warn(cmd.log); err != nil {
 			return err
 		}
@@ -92,12 +98,13 @@ func (cmd *storagePrepareCmd) Execute(args []string) error {
 	}
 	req.SetHostList(cmd.hostlist)
 	resp, err := control.StoragePrepare(ctx, cmd.ctlInvoker, req)
-	if err != nil {
-		return err
-	}
 
 	if cmd.jsonOutputEnabled() {
-		return cmd.outputJSON(os.Stdout, resp)
+		return cmd.outputJSON(os.Stdout, resp, err)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	var bld strings.Builder
@@ -129,12 +136,13 @@ func (cmd *storageScanCmd) Execute(_ []string) error {
 	req := &control.StorageScanReq{}
 	req.SetHostList(cmd.hostlist)
 	resp, err := control.StorageScan(ctx, cmd.ctlInvoker, req)
-	if err != nil {
-		return err
-	}
 
 	if cmd.jsonOutputEnabled() {
-		return cmd.outputJSON(os.Stdout, resp)
+		return cmd.outputJSON(os.Stdout, resp, err)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	var bld strings.Builder
@@ -219,27 +227,7 @@ func (cmd *storageFormatCmd) shouldReformatSystem(ctx context.Context) (bool, er
 	return false, nil
 }
 
-// Execute is run when storageFormatCmd activates.
-//
-// Run NVMe and SCM storage format on all connected servers.
-func (cmd *storageFormatCmd) Execute(args []string) (err error) {
-	ctx := context.Background()
-
-	sysReformat, err := cmd.shouldReformatSystem(ctx)
-	if err != nil {
-		return err
-	}
-	if !sysReformat {
-		req := &control.StorageFormatReq{Reformat: cmd.Reformat}
-		req.SetHostList(cmd.hostlist)
-		resp, err := control.StorageFormat(ctx, cmd.ctlInvoker, req)
-		if err != nil {
-			return err
-		}
-
-		return cmd.printFormatResp(resp)
-	}
-
+func (cmd *storageFormatCmd) systemReformat(ctx context.Context) error {
 	hostSet, rankSet, err := cmd.validateHostsRanks()
 	if err != nil {
 		return err
@@ -249,6 +237,43 @@ func (cmd *storageFormatCmd) Execute(args []string) (err error) {
 	srReq.Ranks = *rankSet
 
 	resp, err := control.SystemReformat(ctx, cmd.ctlInvoker, srReq)
+
+	if cmd.jsonOutputEnabled() {
+		return cmd.outputJSON(os.Stdout, resp, err)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return cmd.printFormatResp(resp)
+}
+
+// Execute is run when storageFormatCmd activates.
+//
+// Run NVMe and SCM storage format on all connected servers.
+func (cmd *storageFormatCmd) Execute(args []string) (err error) {
+	ctx := context.Background()
+
+	sysReformat, err := cmd.shouldReformatSystem(ctx)
+	if err != nil {
+		if cmd.jsonOutputEnabled() {
+			return cmd.errorJSON(err)
+		}
+		return err
+	}
+	if sysReformat {
+		return cmd.systemReformat(ctx)
+	}
+
+	req := &control.StorageFormatReq{Reformat: cmd.Reformat}
+	req.SetHostList(cmd.hostlist)
+	resp, err := control.StorageFormat(ctx, cmd.ctlInvoker, req)
+
+	if cmd.jsonOutputEnabled() {
+		return cmd.outputJSON(os.Stdout, resp, err)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -257,10 +282,6 @@ func (cmd *storageFormatCmd) Execute(args []string) (err error) {
 }
 
 func (cmd *storageFormatCmd) printFormatResp(resp *control.StorageFormatResp) error {
-	if cmd.jsonOutputEnabled() {
-		return cmd.outputJSON(os.Stdout, resp)
-	}
-
 	var bld strings.Builder
 	verbose := control.PrintWithVerboseOutput(cmd.Verbose)
 	if err := control.PrintResponseErrors(resp, &bld); err != nil {

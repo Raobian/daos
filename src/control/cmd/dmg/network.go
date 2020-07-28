@@ -59,12 +59,13 @@ func (cmd *networkScanCmd) Execute(_ []string) error {
 	cmd.log.Debugf("network scan req: %+v", req)
 
 	resp, err := control.NetworkScan(ctx, cmd.ctlInvoker, req)
-	if err != nil {
-		return err
-	}
 
 	if cmd.jsonOutputEnabled() {
-		return cmd.outputJSON(os.Stdout, resp)
+		return cmd.outputJSON(os.Stdout, resp, err)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	var bld strings.Builder
