@@ -102,6 +102,7 @@ type (
 		log     logging.Logger
 		backend Backend
 		fwd     *Forwarder
+		firmwareProvider
 	}
 )
 

@@ -31,6 +31,7 @@ import (
 
 	"github.com/daos-stack/daos/src/control/logging"
 	"github.com/daos-stack/daos/src/control/pbin"
+	"github.com/daos-stack/daos/src/control/server/storage/bdev"
 	"github.com/daos-stack/daos/src/control/server/storage/scm"
 )
 
@@ -74,7 +75,7 @@ func (h *scmQueryHandler) Handle(log logging.Logger, req *pbin.Request) *pbin.Re
 	return pbin.NewResponseWithPayload(res)
 }
 
-// scmUpdateHandler handles a request to update the firmware from a file.
+// scmUpdateHandler handles a request to update the SCM module firmware from a file.
 type scmUpdateHandler struct {
 	scmHandler
 }
@@ -97,4 +98,20 @@ func (h *scmUpdateHandler) Handle(log logging.Logger, req *pbin.Request) *pbin.R
 	}
 
 	return pbin.NewResponseWithPayload(res)
+}
+
+// bdevHandler provides the ability to set up the bdev.Provider for NVMe method handlers.
+type bdevHandler struct {
+	bdevProvider *bdev.Provider
+}
+
+func (h *bdevHandler) setupProvider(log logging.Logger) {
+	if h.bdevProvider == nil {
+		h.bdevProvider = bdev.DefaultProvider(log).WithForwardingDisabled()
+	}
+}
+
+// nvmeUpdateHandler handles a request to update the NVMe device firmware from a file.
+type nvmeUpdateHandler struct {
+	bdevHandler
 }

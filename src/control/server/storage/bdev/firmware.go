@@ -22,7 +22,7 @@
 //
 // +build firmware
 
-package scm
+package bdev
 
 import (
 	"github.com/pkg/errors"
@@ -40,80 +40,32 @@ type (
 		fwFwd *FirmwareForwarder
 	}
 
-	// FirmwareQueryRequest defines the parameters for a firmware query.
-	FirmwareQueryRequest struct {
-		pbin.ForwardableRequest
-		Devices []string // requested device UIDs, empty for all
-	}
-
-	// ModuleFirmware represents the results of a firmware query for a specific
-	// SCM module.
-	ModuleFirmware struct {
-		Module storage.ScmModule
-		Info   *storage.ScmFirmwareInfo
-		Error  string
-	}
-
-	// FirmwareQueryResponse contains the results of a successful firmware query.
-	FirmwareQueryResponse struct {
-		Results []ModuleFirmware
-	}
-
 	// FirmwareUpdateRequest defines the parameters for a firmware update.
 	FirmwareUpdateRequest struct {
 		pbin.ForwardableRequest
-		Devices      []string // requested device UIDs, empty for all
+		Devices      []string // requested device PCI addresses, empty for all
 		FirmwarePath string   // location of the firmware binary
 	}
 
-	// ModuleFirmwareUpdateResult represents the result of a firmware update for
-	// a specific SCM module.
-	ModuleFirmwareUpdateResult struct {
-		Module storage.ScmModule
+	// DeviceFirmwareUpdateResult represents the result of a firmware update for
+	// a specific NVMe controller.
+	DeviceFirmwareUpdateResult struct {
+		Device storage.NvmeController
 		Error  string
 	}
 
 	// FirmwareUpdateResponse contains the results of the firmware update.
 	FirmwareUpdateResponse struct {
-		Results []ModuleFirmwareUpdateResult
+		Results []DeviceFirmwareUpdateResult
 	}
 )
 
-// setupFirmwareProvider initializes the provider's firmware capabilities.
+// setupFirmwareProvider sets up the firmware provider.
 func (p *Provider) setupFirmwareProvider(log logging.Logger) {
 	p.fwFwd = NewFirmwareForwarder(log)
 }
 
-// QueryFirmware fetches the status of SCM device firmware.
-func (p *Provider) QueryFirmware(req FirmwareQueryRequest) (*FirmwareQueryResponse, error) {
-	if p.shouldForward(req) {
-		return p.fwFwd.Query(req)
-	}
-
-	modules, err := p.getRequestedModules(req.Devices)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := &FirmwareQueryResponse{
-		Results: make([]ModuleFirmware, 0, len(modules)),
-	}
-	for _, mod := range modules {
-		fwInfo, err := p.backend.GetFirmwareStatus(mod.UID)
-		result := ModuleFirmware{
-			Module: *mod,
-			Info:   fwInfo,
-		}
-		if err != nil {
-			result.Error = err.Error()
-		}
-		resp.Results = append(resp.Results, result)
-	}
-
-	return resp, nil
-}
-
-// UpdateFirmware updates the SCM device firmware.
+// UpdateFirmware updates the NVMe device controller firmware.
 func (p *Provider) UpdateFirmware(req FirmwareUpdateRequest) (*FirmwareUpdateResponse, error) {
 	if p.shouldForward(req) {
 		return p.fwFwd.Update(req)
@@ -123,28 +75,28 @@ func (p *Provider) UpdateFirmware(req FirmwareUpdateRequest) (*FirmwareUpdateRes
 		return nil, errors.New("missing path to firmware file")
 	}
 
-	modules, err := p.getRequestedModules(req.Devices)
-	if err != nil {
-		return nil, err
-	}
+	// modules, err := p.getRequestedModules(req.Devices)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if len(modules) == 0 {
-		return nil, errors.New("no SCM modules")
-	}
+	// if len(modules) == 0 {
+	// 	return nil, errors.New("no SCM modules")
+	// }
 
 	resp := &FirmwareUpdateResponse{
-		Results: make([]ModuleFirmwareUpdateResult, 0, len(modules)),
+		Results: make([]DeviceFirmwareUpdateResult, 0, len(modules)),
 	}
-	for _, mod := range modules {
-		err = p.backend.UpdateFirmware(mod.UID, req.FirmwarePath)
-		result := ModuleFirmwareUpdateResult{
-			Module: *mod,
-		}
-		if err != nil {
-			result.Error = err.Error()
-		}
-		resp.Results = append(resp.Results, result)
-	}
+	// for _, mod := range modules {
+	// 	err = p.backend.UpdateFirmware(mod.UID, req.FirmwarePath)
+	// 	result := ModuleFirmwareUpdateResult{
+	// 		Module: *mod,
+	// 	}
+	// 	if err != nil {
+	// 		result.Error = err.Error()
+	// 	}
+	// 	resp.Results = append(resp.Results, result)
+	// }
 
 	return resp, nil
 }
@@ -169,25 +121,10 @@ func (f *FirmwareForwarder) checkSupport() error {
 		return nil
 	}
 
-	return errors.Errorf("SCM firmware operations are not supported on this system")
+	return errors.Errorf("NVMe firmware operations are not supported on this system")
 }
 
-// Query forwards an SCM firmware query request.
-func (f *FirmwareForwarder) Query(req FirmwareQueryRequest) (*FirmwareQueryResponse, error) {
-	if err := f.checkSupport(); err != nil {
-		return nil, err
-	}
-	req.Forwarded = true
-
-	res := new(FirmwareQueryResponse)
-	if err := f.SendReq("ScmFirmwareQuery", req, res); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-// Update forwards a request to update firmware on the SCM.
+// Update forwards a request to update firmware on the NVMe device.
 func (f *FirmwareForwarder) Update(req FirmwareUpdateRequest) (*FirmwareUpdateResponse, error) {
 	if err := f.checkSupport(); err != nil {
 		return nil, err
@@ -195,7 +132,7 @@ func (f *FirmwareForwarder) Update(req FirmwareUpdateRequest) (*FirmwareUpdateRe
 	req.Forwarded = true
 
 	res := new(FirmwareUpdateResponse)
-	if err := f.SendReq("ScmFirmwareUpdate", req, res); err != nil {
+	if err := f.SendReq("NvmeFirmwareUpdate", req, res); err != nil {
 		return nil, err
 	}
 
